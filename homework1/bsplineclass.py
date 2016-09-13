@@ -7,6 +7,7 @@ Created on Sun Sep 11 15:33:33 2016
 
 import scipy
 import pylab
+import unittest
 
 
 class Bspline(object):
@@ -24,9 +25,16 @@ class Bspline(object):
                                       ]),
         i.e. an (L+1)x2 array.
         """
+        try:
+            grid = scipy.array(grid)
+            grid = grid.reshape((len(grid), 1))
+        except ValueError:
+            raise ValueError('Grid should be a one-dimensional list or array')
         if len(grid) != len(controlpoints) + 2:
             raise ValueError('Number of gridpoints or controlpoints is wrong')
-        self.grid = grid
+        if controlpoints.shape[1] != 2:
+            raise ValueError('Controlpoints should be an (L+1)x2 array.')
+        self.grid = grid.reshape((len(grid), 1))
         self.controlpoints = controlpoints
 
     def __call__(self, u):
@@ -80,7 +88,7 @@ class Bspline(object):
         corresponding to the current blossom pair
         """
         indices[0] = max(0, indices[0])  # adjust for very beginning
-        indices[1] = min(len(self.grid) - 1, indices[1])  # adjust for very end
+#        indices[1] = min(len(self.grid) - 1, indices[1])  # adjust for very end
         try:
             alpha = ((self.grid[indices[1]] - u) /
                      (self.grid[indices[1]] - self.grid[indices[0]]))
@@ -97,7 +105,8 @@ class Bspline(object):
         u (float): value at which to evaluate the spline
         """
         if u == self.grid[-1]:  # check if u equals last knot
-            index = len(self.grid) - 2  # pick next to last index
+#            index = len(self.grid) - 2  # pick next to last index
+            index = (self.grid < u).argmin() - 1
         else:
             index = (self.grid > u).argmax() - 1
         return index
@@ -115,18 +124,109 @@ class Bspline(object):
             pylab.plot(*zip(*self.controlpoints), 'o--')
 
 
-controlpoints = scipy.array([[40, 17],
-                             [20, 0],
-                             [18, 8],
-                             [57, -27],
-                             [8, -77],
-                             [-23, -65],
-                             [-100, -15],
-                             [-23, 7],
-                             [-40, 20],
-                             [-15, 10]])
+#controlpoints = scipy.array([[40, 17],
+#                             [20, 0],
+#                             [18, 8],
+#                             [57, -27],
+#                             [8, -77],
+#                             [-23, -65],
+#                             [-100, -15],
+#                             [-23, 7],
+#                             [-40, 20],
+#                             [-15, 10]])
+controlpoints = scipy.array([[x * scipy.cos(x), x * scipy.sin(x)]
+                            for x in scipy.linspace(0, 8 * scipy.pi, 35)])
+
 grid = scipy.hstack((scipy.zeros(2),
                      scipy.linspace(0, 1, len(controlpoints) + 2 - 4),
                      scipy.ones(2)))
 spline = Bspline(grid=grid, controlpoints=controlpoints)
 spline.plot()
+
+
+class TestBsplineClass(unittest.TestCase):
+    def get_random_controlpoints(self, second_dimension):
+        controlpoints = scipy.random.random((scipy.random.randint(10, 200),
+                                             second_dimension))
+        return controlpoints
+
+    def get_random_grid(self, length):
+        a = scipy.random.randint(-1000, 1000) * scipy.random.random()
+        b = a + abs(scipy.random.randint(10) * scipy.random.random())
+        grid = scipy.linspace(a, b, length)
+        return grid
+
+    def get_spline(self):
+        controlpoints = self.get_random_controlpoints(2)
+        grid = self.get_random_grid(len(controlpoints) + 2)
+        return Bspline(grid=grid, controlpoints=controlpoints)
+
+    def test_init(self):
+        self.get_spline()
+
+    def test_wrong_grid1(self):
+        controlpoints = self.get_random_controlpoints(2)
+        grid = scipy.random.random((3, 3))
+        self.assertRaises(ValueError,
+                          Bspline, grid=grid, controlpoints=controlpoints)
+
+    def test_wrong_grid2(self):
+        controlpoints = self.get_random_controlpoints(2)
+        grid = self.get_random_grid(len(controlpoints) - 1)
+        self.assertRaises(ValueError,
+                          Bspline, grid=grid, controlpoints=controlpoints)
+
+    def test_wrong_controlpoints(self):
+        controlpoints = self.get_random_controlpoints(3)
+        grid = scipy.linspace(0, 10, len(controlpoints) + 2)
+        self.assertRaises(ValueError,
+                          Bspline, grid=grid, controlpoints=controlpoints)
+
+    def test_get_index1(self):
+        controlpoints = scipy.array([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])
+        grid = scipy.array([1, 2, 3, 4, 5, 6, 7])
+        spline = Bspline(grid=grid, controlpoints=controlpoints)
+        self.assertEqual(spline.get_index(1.5), 0)
+
+    def test_get_index2(self):
+        controlpoints = scipy.array([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])
+        grid = scipy.array([1, 2, 3, 4, 5, 6, 7])
+        spline = Bspline(grid=grid, controlpoints=controlpoints)
+        self.assertEqual(spline.get_index(7), 5)
+
+    def test_get_index3(self):
+        controlpoints = scipy.array([[1, 2], [2, 3], [3, 4], [4, 5], [5, 6]])
+        grid = scipy.array([1, 2, 3, 4, 5, 6, 7])
+        spline = Bspline(grid=grid, controlpoints=controlpoints)
+        self.assertEqual(spline.get_index(1), 0)
+
+    def test_get_controlpoints1(self):
+        spline = self.get_spline()
+        index = scipy.random.randint(2, len(spline.controlpoints) - 3)
+        self.assertTrue((spline.get_controlpoints(index) ==
+                         spline.controlpoints[index-2:index+2]).all())
+
+    def test_get_controlpoints2(self):
+        spline = self.get_spline()
+        index = scipy.random.randint(0, 2)
+        self.assertTrue((spline.get_controlpoints(index) ==
+                         spline.controlpoints[0:4]).all())
+
+    def test_get_controlpoints3(self):
+        spline = self.get_spline()
+        index = len(spline.controlpoints) - 1
+        self.assertTrue((spline.get_controlpoints(index) ==
+                         spline.controlpoints[-4:]).all())
+
+    def test_get_alpha(self):
+        spline = self.get_spline()
+        u = spline.grid[0] + scipy.random.random() * spline.grid[1]
+        index = spline.get_index(u)
+        indices = [index - scipy.random.randint(-1, 3),
+                   index + scipy.random.randint(1, 3)]
+        self.assertEqual(spline.get_alpha(u=u, indices=indices),
+                         (spline.grid[indices[1]] - u) /
+                         (spline.grid[indices[1]] - spline.grid[indices[0]]))
+
+if __name__ == '__main__':
+    unittest.main()
