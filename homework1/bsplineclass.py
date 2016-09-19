@@ -66,28 +66,35 @@ class Bspline(object):
                                              )
         return deBoorvalues[3, -2:]
 
-    def get_basisfunc(self, j, knots, u, k=3):
+    def get_basisfunc(self, k, j, knots):
         """
-        Method to evaluate the the basis function N^k with index j at point u.
-        j (int): the index of the basis function we want to evaluate
-        knots (array): knot sequence u_i, where i=0,...,K
-        u (float): the point where to evaluate the basis function
-        k (int): the degree of the basis function
+        Method that returns a function which evaluates the basis function of degree k with index j at point u.
         """
-        if k == 0:
-            return 1 if knots[j] <= u < knots[j+1] \
-                     else 0
-        else:
-            try:
-                basisfunc = (u - knots[j])/(knots[j+k]-knots[j]) * self.get_basisfunc(j,knots,u,k=k-1) \
-                + (knots[j+k+1] - u)/(knots[j+k+1] - knots[j+1]) * self.get_basisfunc(j+1,knots,u,k=k-1)
-            except ZeroDivisionError:
-                basisfunc = 0
-            except IndexError:
-                numBasisfunc = len(knots) - 1 - k
-                basisfunc = 'Invalid index. There are no more than {} basis functions for the given problem, choose an ' \
-                            'index lower than the number of basis functions.'.format(numBasisfunc)
-            return basisfunc
+        def basisfunction(u, k=k, j=j, knots=knots):
+            """
+            Method to evaluate the the basis function N^k with index j at point u.
+            u (float): the point where to evaluate the basis function
+            k (int): the degree of the basis function
+            j (int): the index of the basis function we want to evaluate
+            knots (array): knot sequence u_i, where i=0,...,K
+            """
+            if k == 0:
+                return 1 if knots[j] <= u < knots[j+1] \
+                         else 0
+            else:
+                try:
+                    a0 = 0 if knots[j+k] == knots[j] \
+                           else (u - knots[j])/(knots[j+k]-knots[j])
+                    a1 = 0 if knots[j+k+1] == knots[j+1] \
+                           else (knots[j+k+1] - u)/(knots[j+k+1] - knots[j+1])
+                    basisfunc = a0 * basisfunction(u, k=k-1) \
+                                + a1 * basisfunction(u, k=k-1, j=j+1)
+                except IndexError:
+                    numBasisfunc = len(knots) - 1 - k
+                    return 'Invalid index. There are no more than {} basis functions for the given problem, choose an ' \
+                                'index lower than the number of basis functions.'.format(numBasisfunc)
+                return basisfunc
+        return basisfunction
 
     def get_controlpoints(self, index):
         """
@@ -252,8 +259,9 @@ if __name__ == '__main__':
                          scipy.linspace(0, 1, len(controlpoints) + 2 - 4),
                          scipy.ones(2)))
     spline = Bspline(grid=grid, controlpoints=controlpoints)
-    spline.plot()
+    #spline.plot()
 
-#    print(spline.get_basisfunc(3,np.array([0,0.25,0.5,0.75,1]),0,k=1))
+    bf = spline.get_basisfunc(1, 1, np.array([0,0.25,0.5,0.75,1]))
+    print(bf(0.25))
 #   unittest.main()
 
