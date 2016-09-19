@@ -1,3 +1,9 @@
-Our implementation is somewhat based on the single responsibility principle. We have one method for each required part of the spline. We chose to do it this way because it makes the code much more readable if it has clear sub-divisions. The construction of the splines sub-parts is delegated down to each corresponding method which is then joined together to create the spline.  
+Our implementation is somewhat based on the single responsibility principle. We have one method for
+each required part of the spline. We chose to do it this way because it makes the code much more
+readable if it has clear sub-divisions. The construction of the splines sub-parts is delegated down to
+each corresponding method which is then joined together to create the spline.  
 
-A polynomial class could be used to implement the basis functions and could possibly make the code more understandable. We don't see how the use of a polynomial class could make it more efficient so we believe that it's sole benefit would be in code readability. Technically, not much would change in our calculations we would just pass a polynomial object recursively when creating the basis functions. 
+A polynomial class could be used to implement the basis functions and could possibly make the code
+more understandable. We don't see how the use of a polynomial class could make it more efficient so we
+believe that it's sole benefit would be in code readability. Technically, not much would change in our
+calculations we would just pass a polynomial object recursively when creating the basis functions. d
