@@ -8,6 +8,7 @@ Created on Sun Sep 11 15:33:33 2016
 import scipy
 import pylab
 import unittest
+import numpy as np
 
 
 class Bspline(object):
@@ -64,6 +65,29 @@ class Bspline(object):
                             (1 - alpha) * deBoorvalues[i, (j-1)*2:(j-1)*2+2]
                                              )
         return deBoorvalues[3, -2:]
+
+    def get_basisfunc(self, j, knots, u, k=3):
+        """
+        Method to evaluate the the basis function N^k with index j at point u.
+        j (int): the index of the basis function we want to evaluate
+        knots (array): knot sequence u_i, where i=0,...,K
+        u (float): the point where to evaluate the basis function
+        k (int): the degree of the basis function
+        """
+        if k == 0:
+            return 1 if knots[j] <= u < knots[j+1] \
+                     else 0
+        else:
+            try:
+                basisfunc = (u - knots[j])/(knots[j+k]-knots[j]) * self.get_basisfunc(j,knots,u,k=k-1) \
+                + (knots[j+k+1] - u)/(knots[j+k+1] - knots[j+1]) * self.get_basisfunc(j+1,knots,u,k=k-1)
+            except ZeroDivisionError:
+                basisfunc = 0
+            except IndexError:
+                numBasisfunc = len(knots) - 1 - k
+                basisfunc = 'Invalid index. There are no more than {} basis functions for the given problem, choose an ' \
+                            'index lower than the number of basis functions.'.format(numBasisfunc)
+            return basisfunc
 
     def get_controlpoints(self, index):
         """
@@ -122,26 +146,7 @@ class Bspline(object):
         pylab.plot(*zip(*[self(u) for u in ulist]))
         if controlpoints:  # checking whether to plot control points
             pylab.plot(*zip(*self.controlpoints), 'o--')
-
-
-#controlpoints = scipy.array([[40, 17],
-#                             [20, 0],
-#                             [18, 8],
-#                             [57, -27],
-#                             [8, -77],
-#                             [-23, -65],
-#                             [-100, -15],
-#                             [-23, 7],
-#                             [-40, 20],
-#                             [-15, 10]])
-controlpoints = scipy.array([[x * scipy.cos(x), x * scipy.sin(x)]
-                            for x in scipy.linspace(0, 8 * scipy.pi, 35)])
-
-grid = scipy.hstack((scipy.zeros(2),
-                     scipy.linspace(0, 1, len(controlpoints) + 2 - 4),
-                     scipy.ones(2)))
-spline = Bspline(grid=grid, controlpoints=controlpoints)
-spline.plot()
+            pylab.show()
 
 
 class TestBsplineClass(unittest.TestCase):
@@ -229,4 +234,26 @@ class TestBsplineClass(unittest.TestCase):
                          (spline.grid[indices[1]] - spline.grid[indices[0]]))
 
 if __name__ == '__main__':
-    unittest.main()
+    # controlpoints = scipy.array([[40, 17],
+    #                             [20, 0],
+    #                             [18, 8],
+    #                             [57, -27],
+    #                             [8, -77],
+    #                             [-23, -65],
+    #                             [-100, -15],
+    #                             [-23, 7],
+    #                             [-40, 20],
+    #                             [-15, 10]])
+
+    controlpoints = scipy.array([[x * scipy.cos(x), x * scipy.sin(x)]
+                                for x in scipy.linspace(0, 8 * scipy.pi, 35)])
+
+    grid = scipy.hstack((scipy.zeros(2),
+                         scipy.linspace(0, 1, len(controlpoints) + 2 - 4),
+                         scipy.ones(2)))
+    spline = Bspline(grid=grid, controlpoints=controlpoints)
+    spline.plot()
+
+#    print(spline.get_basisfunc(3,np.array([0,0.25,0.5,0.75,1]),0,k=1))
+#   unittest.main()
+
