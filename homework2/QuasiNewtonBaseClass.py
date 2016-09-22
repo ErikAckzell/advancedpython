@@ -10,17 +10,16 @@ import abc
 
 
 class QuasiNewtonBase(metaclass=abc.ABCMeta):
+    """
+    Abstract class for Quasi Newton methods for solving minimization problems.
+    """
 
     @abc.abstractmethod
-    def get_solution(self):
+    def get_sk(self):
         pass
 
     @abc.abstractmethod
-    def update_s(self):
-        pass
-
-    @abc.abstractmethod
-    def update_alpha(self):
+    def get_alphak(self):
         pass
 
     @abc.abstractmethod
