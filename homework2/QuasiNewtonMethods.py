@@ -49,9 +49,7 @@ class QuasiNewtonMethods:
         """
         This method performs one iteration of the Quasi Newton method.
         """
-        sk = self.get_sk()
-        alphak = self.get_alphak()
-        self.update_x(sk=sk, alphak=alphak)
+        self.update_x()
 
 
 class NewtonMethod(QuasiNewtonBaseClass.QuasiNewtonBase,
@@ -61,10 +59,12 @@ class NewtonMethod(QuasiNewtonBaseClass.QuasiNewtonBase,
     the QuasiNewtonMethods class and the abstract base class
     QuasiNewtonBase
     """
-    def update_x(self, sk, alphak):
+    def update_x(self):
         """
-        This mehod updates the solution x, given an s and an alpha.
+        This mehod updates the solution x.
         """
+        sk = self.get_sk()
+        alphak = self.get_alphak()
         self.x_old = scipy.copy(self.x)
         self.x = self.x_old + alphak * sk
 
