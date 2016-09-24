@@ -41,15 +41,9 @@ class QuasiNewtonMethods:
         """
         i = 1
         while scipy.linalg.norm(self.g(self.x)) >= tolerance and i <= maxiter:
-            self.perform_iteration()
+            self.update_x()
             i += 1
         return self.x
-
-    def perform_iteration(self):
-        """
-        This method performs one iteration of the Quasi Newton method.
-        """
-        self.update_x()
 
 
 class NewtonMethod(QuasiNewtonBaseClass.QuasiNewtonBase,
@@ -233,9 +227,10 @@ if __name__ == '__main__':
 
     def g(x): return scipy.array([1, 1])
 
+    x0 = scipy.array([0, 0])
     p = optimizationProblemclass.optimizationProblem(function=f, gradient=g)
-    instance = NewtonMethod(p, 2)
-    instance = goodBroyden(p, 2)
-    instance = badBroyden(p, 2)
-    instance = DFP(p, 2)
-    instance = BFGS(p, 2)
+    instance = NewtonMethod(p, x0)
+    instance = goodBroyden(p, x0)
+    instance = badBroyden(p, x0)
+    instance = DFP(p, x0)
+    instance = BFGS(p, x0)

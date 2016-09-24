@@ -6,7 +6,7 @@ Created on Wed Sep 21 12:48:02 2016
 """
 
 
-class optimizationProblem(object):
+class optimizationProblem:
     """
     This is a class for optimization problems.
     """
