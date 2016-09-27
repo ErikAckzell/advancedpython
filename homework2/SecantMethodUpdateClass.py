@@ -1,4 +1,4 @@
-from NewtonMethodClass import NewtonMethodClass
+from NewtonMethodClass import NewtonMethod
 import scipy
 
 
