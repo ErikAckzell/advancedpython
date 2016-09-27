@@ -21,6 +21,8 @@ def rosenbrockfunction(x):
         raise ValueError('Input has wrong number of elements')
     return 100 * (x[1] - x[0]**2)**2 + (1 - x[0])**2
 
+def rosenbrockderivative(x):
+    pass
 
 class TestRosenbrock(unittest.TestCase):
     def test_wrong_input(self):
