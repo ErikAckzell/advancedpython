@@ -8,7 +8,8 @@ class QuasiNewtonBase(metaclass=abc.ABCMeta):
     Abstract class for Quasi Newton methods for solving minimization problems.
     """
 
-    def __init__(self, problem, x0, linesearchoption, linesearchcondition):
+    def __init__(self, problem, x0,
+                 linesearchoption=None, linesearchcondition=None):
         """
         An object of the class is initialized by an object of the
         optimizationProblem class problem, and an initial guess for the
