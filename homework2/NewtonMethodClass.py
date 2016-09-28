@@ -1,37 +1,41 @@
 import scipy
+import numpy as np
+import numdifftools as nd
 from QuasiNewtonBaseClass import QuasiNewtonBase
 
 
 class NewtonMethod(QuasiNewtonBase):
     """
-    This is a class for the classic Newton method. It inherits from both
-    the QuasiNewtonMethods class and the abstract base class
-    QuasiNewtonBase
+    This is a class for the classic Newton method. It inherits from the abstract base class QuasiNewtonBase
     """
+
     def update_x(self):
         """
         This mehod updates the solution x.
         """
         sk = self.get_sk()
-        alphak = self.get_alphak()
-        self.x_old = scipy.copy(self.x)
-        self.x = self.x_old + alphak * sk
+        self.x = self.x + sk
 
     def update_H(self):
         """
-        This method updates H, which is an approximation of the inverse of the
-        Hessian of the objective function.
+        This method approximates the hessian H of the objective function by using finite differences followed by a
+        symmetrizing step.
         """
-        pass
+        hessian = nd.Hessian(self.f)
+        self.H = (hessian + np.transpose(hessian))* 1/2
 
     def get_alphak(self):
         """
-        This method calculates and returns the current alpha.
+        This method is not needed for the classical Newton method.
         """
         pass
 
     def get_sk(self):
         """
-        This method calculates and returns the current s.
+        This method calculates and returns the current s. To solve the linear system a solver based on Cholesky
+        decomposition is used.
         """
-        return - self.H.dot(self.g(self.x))
+        self.update_H()
+        cho_factor = scipy.linalg.cholesky(-self.H) # this will raise an error if the matrix is not positive definite
+        sk = scipy.linalg.cho_solve(cho_factor(self.x), self.g(self.x))
+        return sk
