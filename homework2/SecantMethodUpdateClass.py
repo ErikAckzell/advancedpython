@@ -7,10 +7,11 @@ class SecantMethodUpdate(NewtonMethod):
     This is a general class for the Quasi Newton methods which uses a secant
     method. It inherits from the QuasiNewtonMethods class.
     """
-    def __init__(self, problem, x0, linesearchmethod):
-        super().__init__(problem, x0, linesearchmethod)
-        self.x_old = scipy.copy(x0)
-        self.gk = self.g(self.x0)
+    def __init__(self, problem, x0, linesearchoption, linesearchcondition):
+        super().__init__(problem, x0, linesearchoption, linesearchcondition)
+        self.x = x0
+        self.x_old = scipy.copy(self.x)
+        self.gk = self.g(self.x)
         self.gk_old = self.g(self.x_old)
 
     def get_delta(self):
@@ -35,3 +36,6 @@ class SecantMethodUpdate(NewtonMethod):
         self.x_old = scipy.copy(self.x)
         self.x = self.x - self.H.dot(self.gk)
 
+    def get_alphak(self):
+        self.linesearch.search(search_option=self.linesearchoption,
+                               cond_option=self.linesearchcondition)

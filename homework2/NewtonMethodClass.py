@@ -1,6 +1,7 @@
 import scipy
 from QuasiNewtonBaseClass import QuasiNewtonBase
 
+
 class NewtonMethod(QuasiNewtonBase):
     """
     This is a class for the classic Newton method. It inherits from both

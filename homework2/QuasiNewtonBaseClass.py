@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep 21 12:51:51 2016
-
-@author: Erik Ackzell
-"""
-
-
 import abc
 import scipy
 from LineSearchClass import LineSearch
@@ -16,7 +8,7 @@ class QuasiNewtonBase(metaclass=abc.ABCMeta):
     Abstract class for Quasi Newton methods for solving minimization problems.
     """
 
-    def __init__(self, problem, x0, linesearchmethod):
+    def __init__(self, problem, x0, linesearchoption, linesearchcondition):
         """
         An object of the class is initialized by an object of the
         optimizationProblem class problem, and an initial guess for the
@@ -26,7 +18,9 @@ class QuasiNewtonBase(metaclass=abc.ABCMeta):
         self.f = problem.f
         self.g = problem.g
         self.H = scipy.eye(len(x0))
-        self.linesearchmethod = LineSearch(linesearchmethod)
+        self.linesearch = LineSearch(self.f)
+        self.linesearchmethod = linesearchoption
+        self.linesearchcondition = linesearchcondition
 
     @abc.abstractmethod
     def get_sk(self):

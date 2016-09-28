@@ -1,4 +1,6 @@
 from SecantMethodUpdateClass import SecantMethodUpdate
+import optimizationProblemclass
+import scipy
 
 
 class BFGS(SecantMethodUpdate):
@@ -21,3 +23,16 @@ class BFGS(SecantMethodUpdate):
                        self.H.dot(gamma).dot(delta.transpose())) /
                       delta.transpose().dot(gamma))
         self.H = self.H + summand2 + summand3
+
+if __name__ == '__main__':
+    def f(x):
+        return x[0]**2 + x[1]**2
+
+    def g(x):
+        return scipy.array([2 * x[0], 2 * x[1]])
+
+    p = optimizationProblemclass.optimizationProblem(function=f, gradient=g)
+    instance = BFGS(problem=p,
+                    x0=scipy.ones(2),
+                    linesearchoption='inexact',
+                    linesearchcondition=3)

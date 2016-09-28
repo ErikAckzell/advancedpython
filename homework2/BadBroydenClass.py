@@ -1,5 +1,6 @@
 import scipy
 from SecantMethodUpdateClass import SecantMethodUpdate
+import optimizationProblemclass
 
 
 class badBroyden(SecantMethodUpdate):
@@ -25,3 +26,15 @@ class badBroyden(SecantMethodUpdate):
                    scipy.linalg.norm(gamma)**2) *
                   gamma.transpose())
 
+if __name__ == '__main__':
+    def f(x):
+        return x[0]**2 + x[1]**2
+
+    def g(x):
+        return scipy.array([2 * x[0], 2 * x[1]])
+
+    p = optimizationProblemclass.optimizationProblem(function=f, gradient=g)
+    instance = badBroyden(problem=p,
+                          x0=scipy.ones(2),
+                          linesearchoption='inexact',
+                          linesearchcondition=3)
