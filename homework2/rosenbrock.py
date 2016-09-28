@@ -8,7 +8,6 @@ Created on Thu Sep 22 10:18:11 2016
 import scipy
 import unittest
 
-
 def rosenbrockfunction(x):
     """
     This is the Rosenbrock function R^2 -> R.
