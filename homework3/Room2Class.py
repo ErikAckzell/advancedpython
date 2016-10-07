@@ -8,7 +8,9 @@ Created on Thu Oct  6 10:41:43 2016
 
 import scipy
 from matplotlib import pyplot
+import scipy.linalg
 from mpl_toolkits.mplot3d import Axes3D
+
 
 class room2:
     """
@@ -42,7 +44,7 @@ class room2:
                       k=len(self.umatrix[0]) - 2) + \
             scipy.eye((len(self.umatrix[0]) - 2) * (len(self.umatrix[:, 0]) - 2),
                       k=-(len(self.umatrix[0]) - 2))
-        return A
+        return (1 / self.h ** 2) * A
 
     def setup_rhs(self):
         N = len(self.umatrix[0])
@@ -64,24 +66,33 @@ class room2:
         self.u = scipy.linalg.solve(self.matrix, self.rhs)
 
     def plot(self):
-        self.umatrix[1:-1, 1:-1] = self.u.reshape()
+        self.umatrix[1:-1, 1:-1] = self.u.reshape((self.umatrix.shape[0] - 2,
+                                                   self.umatrix.shape[1] - 2))
+        pyplot.close()
         figure = pyplot.figure()
         axis = pyplot.subplot(111, projection='3d')
         x = scipy.arange(0, self.h * len(self.umatrix[0]), self.h)
         y = scipy.arange(0, self.h * len(self.umatrix[:, 0]), self.h)
         X, Y = scipy.meshgrid(x, y)
-        Axes3D.plot_wireframe(X, Y, self.u)
+        Z = self.umatrix
+        axis.plot_wireframe(X, Y, Z)
+        return figure
 
 
 if __name__ == '__main__':
     h = 0.5
-    westwall = scipy.ones(6)
-    northwall = scipy.ones(5)
+    westwall = 2 * scipy.ones(16)
+    northwall = 0.5 * scipy.ones(15)
+    eastwall = scipy.ones(16)
+    southwall = 1.5 * scipy.ones(15)
     R = room2(westwall=westwall,
               northwall=northwall,
-              eastwall=westwall,
-              southwall=northwall,
+              eastwall=eastwall,
+              southwall=southwall,
               h=h)
 #    print(R.matrix)
     print(R.rhs)
 #    print(R.u)
+    R.get_solution()
+    figure = R.plot()
+    figure.show()
