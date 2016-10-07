@@ -12,23 +12,27 @@ import scipy.linalg
 from mpl_toolkits.mplot3d import Axes3D
 
 
-class room2:
+class room:
     """
-    An object of this class is a room of type 2.
+    A room class.
     """
     def __init__(self, westwall, northwall, eastwall, southwall, h):
         """
         The walls should include the corners.
+        h is the stepsize in both x and y direction
         """
-        if not len(westwall) == len(eastwall):
+        #  check that opposite walls are of the same size
+        if not westwall.len == eastwall.len:
             raise ValueError('westwall and eastwall must have same length')
-        if not len(northwall) == len(southwall):
+        if not northwall.len == southwall.len:
             raise ValueError('northwall and southwall must have same length')
-        self.umatrix = scipy.zeros((len(westwall), len(northwall)))
-        self.umatrix[:, 0] = westwall
-        self.umatrix[0, :] = northwall
-        self.umatrix[:, -1] = eastwall
-        self.umatrix[-1, :] = southwall
+        #  initialize matrix to hold solution
+        self.umatrix = scipy.zeros((westwall.len, northwall.len))
+        #  insert the values of the walls
+        self.umatrix[:, 0] = westwall.values
+        self.umatrix[0, :] = northwall.values
+        self.umatrix[:, -1] = eastwall.values
+        self.umatrix[-1, :] = southwall.values
         self.h = h
         self.matrix = self.setup_matrix()
         self.rhs = self.setup_rhs()
@@ -79,19 +83,36 @@ class room2:
         return figure
 
 
+class wall:
+    """
+    This is a class for walls.
+    """
+    def __init__(self, values, condition=None):
+        self.len = len(values)
+        self.values = values
+        self.condition = condition
+
 if __name__ == '__main__':
     h = 0.5
-    westwall = 2 * scipy.ones(16)
-    northwall = 0.5 * scipy.ones(15)
-    eastwall = scipy.ones(16)
-    southwall = 1.5 * scipy.ones(15)
-    R = room2(westwall=westwall,
+#    westwall = wall(2 * scipy.ones(16))
+#    northwall = wall(0.5 * scipy.ones(15))
+#    eastwall = wall(scipy.ones(16))
+#    southwall = wall(1.5 * scipy.ones(15))
+    westwall = wall(2 * scipy.ones(8))
+    northwall = wall(2 * scipy.ones(8))
+    eastwall = wall(scipy.ones(8))
+    southwall = wall(2 * scipy.ones(8))
+#    westwall = wall(scipy.zeros(8))
+#    northwall = wall(scipy.zeros(8))
+#    eastwall = wall(scipy.zeros(8))
+#    southwall = wall(scipy.zeros(8))
+    R = room(westwall=westwall,
               northwall=northwall,
               eastwall=eastwall,
               southwall=southwall,
               h=h)
 #    print(R.matrix)
-    print(R.rhs)
+#    print(R.rhs)
 #    print(R.u)
     R.get_solution()
     figure = R.plot()
