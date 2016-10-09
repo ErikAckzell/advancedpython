@@ -28,18 +28,18 @@ class room:
         if not northwall.len == southwall.len:
             raise ValueError('northwall and southwall must have same length')
 
-        # stepsize as attribute
+        #  stepsize as attribute
         self.h = h
-        # walls as attributes
+        #  walls as attributes
         self.westwall = westwall
         self.northwall = northwall
         self.eastwall = eastwall
         self.southwall = southwall
-        # setup the matrix to store the solution
+        #  setup the matrix to store the solution
         self.umatrix = self.setup_umatrix()
-        # setup the matrix of the linear system which is to be solved
+        #  setup the matrix of the linear system which is to be solved
         self.A = self.setup_A()
-        # setup the righthand side of the linear system which is to be solved
+        #  setup the righthand side of the linear system which is to be solved
         self.b = self.setup_b()
         self.u = self.umatrix[1:-1, 1:-1].flatten()
 
@@ -65,11 +65,35 @@ class room:
         return umatrix
 
     def setup_A(self):
+        """
+        Setup the matrix of the linear system to be solved.
+        The matrix is on the form
+          A = [
+               T I 0 0 0 ... 0 0 0
+               I T I 0 0 ... 0 0 0
+               0 I T I 0 ... 0 0 0
+               ...
+               0 0 0 0 0 ... 0 I T
+              ]
+        where
+          T = [
+               -4 1 0 0 0 ... 0 0 0
+               1 -4 1 0 0 ... 0 0 0
+               0 1 -4 1 0 ... 0 0 0
+               ...
+               0 0 0 0 0  ... 0 1 -4
+              ]
+        and I is the identity matrix.
+        """
+        #  first column of the toeplitz matrices that make up the diagonal of
+        #  the matrix
         column = scipy.concatenate((scipy.array([-4, 1]),
                                     scipy.zeros(self.northwall.len - 2)))
+        #  set up toeplitz matrix that make up the block iagonal of the matrix
         T = scipy.linalg.toeplitz(column)
-#        Ttuple = tuple((T for _ in range(len(self.umatrix[:, 0]) - 2)))
+        #  tuple of toeplitz matrices to
         Ttuple = tuple((T for _ in range(self.westwall.len)))
+        #  set up matrix, using T and inserting ones of the identity matrices
         A = scipy.linalg.block_diag(*Ttuple) \
             + \
             scipy.eye(self.northwall.len * self.westwall.len,
@@ -80,29 +104,42 @@ class room:
         return (1 / self.h ** 2) * A
 
     def setup_b(self):
-        N = self.northwall.len + 2
-        M = self.westwall.len + 2
+        """
+        Method to set up the vector on righthand side of the linear system to
+        be solved.
+        """
+        #  initialize vector with zeros
         b = scipy.zeros((self.westwall.len, self.northwall.len))
+        #  input values
         b[0, 0] = self.umatrix[0, 1] + self.umatrix[1, 0]
-        b[0, -1] = self.umatrix[0, N-2] + self.umatrix[1, N-1]
-        b[-1, 0] = self.umatrix[M-2, 0] + self.umatrix[M-1, 1]
-        b[-1, -1] = self.umatrix[M-1, N-2] + self.umatrix[M-2, N-1]
-        for i in range(1, N-3):
+        b[0, -1] = self.umatrix[0, self.northwall.len] +\
+            self.umatrix[1, self.northwall.len + 1]
+        b[-1, 0] = self.umatrix[self.westwall.len, 0] +\
+            self.umatrix[self.westwall.len + 1, 1]
+        b[-1, -1] = self.umatrix[self.westwall.len + 1, self.northwall.len] +\
+            self.umatrix[self.westwall.len, self.northwall.len + 1]
+        for i in range(1, self.northwall.len - 1):
             b[0, i] = self.umatrix[0, i]
-            b[-1, i] = self.umatrix[M-1, i]
-        for i in range(1, M-3):
+            b[-1, i] = self.umatrix[self.westwall.len + 1, i]
+        for i in range(1, self.westwall.len - 1):
             b[i, 0] = self.umatrix[i, 0]
-            b[i, -1] = self.umatrix[i, N-1]
+            b[i, -1] = self.umatrix[i, self.northwall.len + 1]
         return (- (1 / self.h ** 2) * b).flatten()
 
     def get_solution(self):
+        """
+        Solve the linear equation system.
+        """
         self.u = scipy.linalg.solve(self.A, self.b)
 
     def plot(self):
+        """
+        Returns a figure object with a plot of the solution.
+        """
+        #  insert the solution vector into the matrix
         self.umatrix[1:-1, 1:-1] = self.u.reshape((self.umatrix.shape[0] - 2,
                                                    self.umatrix.shape[1] - 2))
-        pyplot.close()
-        figure = pyplot.figure()
+        figure = pyplot.figure(scipy.random.randint(1, 1000))
         axis = pyplot.subplot(111, projection='3d')
         x = scipy.arange(0, self.h * (self.northwall.len + 2), self.h)
         y = scipy.arange(0, self.h * (self.westwall.len + 2), self.h)
@@ -123,27 +160,49 @@ class wall:
 
 if __name__ == '__main__':
     h = 0.5
-    westwall = wall(2 * scipy.ones(16))
-    northwall = wall(0.5 * scipy.ones(15))
-    eastwall = wall(scipy.ones(16))
-    southwall = wall(1.5 * scipy.ones(15))
-#    westwall = wall(2 * scipy.ones(6))
-#    northwall = wall(2 * scipy.ones(6))
-#    eastwall = wall(scipy.ones(6))
-#    southwall = wall(2 * scipy.ones(6))
-#    westwall = wall(scipy.zeros(8))
-#    northwall = wall(scipy.zeros(8))
-#    eastwall = wall(scipy.zeros(8))
-#    southwall = wall(scipy.zeros(8))
-    R = room(westwall=westwall,
-              northwall=northwall,
-              eastwall=eastwall,
-              southwall=southwall,
-              h=h)
-#    print(R.A)
-#    print(R.b)
-#    print(R.u)
-    R.get_solution()
-    figure = R.plot()
+    westwalls = [wall(scipy.ones(16)),
+                 wall(2 * scipy.ones(13)),
+                 wall(scipy.linspace(0, 10, 14)),
+                 wall(scipy.array([x * scipy.sin(x)
+                                   for x in scipy.linspace(0,
+                                                           2 * scipy.pi,
+                                                           50)]))]
 
-    figure.show()
+    northwalls = [wall(scipy.ones(10)),
+                  wall(0.5 * scipy.ones(15)),
+                  wall(scipy.linspace(0, 10, 14)[::-1]),
+                  wall(scipy.array([scipy.cos(x)
+                               for x in scipy.linspace(0,
+                                                       2 * scipy.pi,
+                                                       40)]))]
+
+    eastwalls = [wall(scipy.ones(16)),
+                 wall(scipy.array([2 * x * scipy.sin(x)
+                                   for x in scipy.linspace(0,
+                                                           2 * scipy.pi,
+                                                           13)])),
+                 wall(2 * scipy.ones(14)),
+                 wall(scipy.linspace(0, 10, 50))]
+
+    southwalls = [wall(scipy.ones(10)),
+                  wall(scipy.linspace(0, 10, 15)[::-1]),
+                  wall(0.5 * scipy.ones(14)),
+                  wall(scipy.array([2 * scipy.sin(x)
+                                   for x in scipy.linspace(0,
+                                                           2 * scipy.pi,
+                                                           40)]))]
+
+    for i in range(len(southwalls)):
+        westwall = westwalls[i]
+        northwall = northwalls[i]
+        eastwall = eastwalls[i]
+        southwall = southwalls[i]
+        R = room(westwall=westwall,
+                 northwall=northwall,
+                 eastwall=eastwall,
+                 southwall=southwall,
+                 h=h)
+        R.get_solution()
+        figure = R.plot()
+
+        figure.show()
