@@ -111,20 +111,32 @@ class room:
         #  initialize vector with zeros
         b = scipy.zeros((self.westwall.len, self.northwall.len))
         #  input values
-        b[0, 0] = self.umatrix[0, 1] + self.umatrix[1, 0]
-        b[0, -1] = self.umatrix[0, self.northwall.len] +\
-            self.umatrix[1, self.northwall.len + 1]
-        b[-1, 0] = self.umatrix[self.westwall.len, 0] +\
-            self.umatrix[self.westwall.len + 1, 1]
-        b[-1, -1] = self.umatrix[self.westwall.len + 1, self.northwall.len] +\
-            self.umatrix[self.westwall.len, self.northwall.len + 1]
-        for i in range(1, self.northwall.len - 1):
-            b[0, i] = self.umatrix[0, i]
-            b[-1, i] = self.umatrix[self.westwall.len + 1, i]
+        self.setup_b_corners(b)
+        self.setup_b_north_south(b)
+#        for i in range(1, self.northwall.len - 1):
+#            b[0, i] = self.umatrix[0, i]
+#            b[-1, i] = self.umatrix[self.westwall.len + 1, i]
         for i in range(1, self.westwall.len - 1):
             b[i, 0] = self.umatrix[i, 0]
             b[i, -1] = self.umatrix[i, self.northwall.len + 1]
         return (- (1 / self.h ** 2) * b).flatten()
+
+    def setup_b_corners(self, b):
+        if self.westwall.condition == 'Dirichlet':
+            b[0, 0] = self.umatrix[0, 1] + self.umatrix[1, 0]
+            b[-1, 0] = self.umatrix[self.westwall.len, 0] +\
+                self.umatrix[self.westwall.len + 1, 1]
+        if self.eastwall.condition == 'Dirichlet':
+            b[0, -1] = self.umatrix[0, self.northwall.len] +\
+                self.umatrix[1, self.northwall.len + 1]
+            b[-1, -1] = self.umatrix[self.westwall.len + 1,
+                                     self.northwall.len] +\
+                self.umatrix[self.westwall.len, self.northwall.len + 1]
+
+    def setup_b_north_south(self, b):
+        for i in range(1, self.northwall.len - 1):
+            b[0, i] = self.umatrix[0, i]
+            b[-1, i] = self.umatrix[self.westwall.len + 1, i]
 
     def get_solution(self):
         """
@@ -153,7 +165,7 @@ class wall:
     """
     This is a class for walls.
     """
-    def __init__(self, values, condition=None):
+    def __init__(self, values, condition='Dirichlet'):
         self.len = len(values)
         self.values = values
         self.condition = condition
@@ -172,9 +184,9 @@ if __name__ == '__main__':
                   wall(0.5 * scipy.ones(15)),
                   wall(scipy.linspace(0, 10, 14)[::-1]),
                   wall(scipy.array([scipy.cos(x)
-                               for x in scipy.linspace(0,
-                                                       2 * scipy.pi,
-                                                       40)]))]
+                                   for x in scipy.linspace(0,
+                                                           2 * scipy.pi,
+                                                           40)]))]
 
     eastwalls = [wall(scipy.ones(16)),
                  wall(scipy.array([2 * x * scipy.sin(x)
@@ -192,6 +204,7 @@ if __name__ == '__main__':
                                                            2 * scipy.pi,
                                                            40)]))]
 
+    pyplot.close('all')
     for i in range(len(southwalls)):
         westwall = westwalls[i]
         northwall = northwalls[i]
