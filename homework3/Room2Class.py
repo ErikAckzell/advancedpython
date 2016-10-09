@@ -14,12 +14,13 @@ from mpl_toolkits.mplot3d import Axes3D
 
 class room:
     """
-    A room class.
+    An object of the class is a rectangular room, on which the Laplace equation
+    is to be solved, using Dirichlet conditions on each boundary.
     """
     def __init__(self, westwall, northwall, eastwall, southwall, h):
         """
-        The walls should include the corners.
-        h is the stepsize in both x and y direction
+        An object of the class is initialized with four walls and a grid
+        stepsize in both x and y direction.
         """
         #  check that opposite walls are of the same size
         if not westwall.len == eastwall.len:
@@ -27,27 +28,33 @@ class room:
         if not northwall.len == southwall.len:
             raise ValueError('northwall and southwall must have same length')
 
+        # stepsize as attribute
         self.h = h
-        self.umatrix = self.setup_umatrix(westwall=westwall,
-                                          northwall=northwall,
-                                          eastwall=eastwall,
-                                          southwall=southwall)
+        # walls as attributes
+        self.westwall = westwall
+        self.northwall = northwall
+        self.eastwall = eastwall
+        self.southwall = southwall
+        # setup the matrix to store the solution
+        self.umatrix = self.setup_umatrix()
+        # setup the matrix of the linear system which is to be solved
         self.A = self.setup_A()
+        # setup the righthand side of the linear system which is to be solved
         self.b = self.setup_b()
         self.u = self.umatrix[1:-1, 1:-1].flatten()
 
-    def setup_umatrix(self, westwall, northwall, eastwall, southwall):
+    def setup_umatrix(self):
         """
         Setup the matrix to hold the solution.
         """
         #  initialize matrix to hold solution
-        umatrix = scipy.zeros((westwall.len + 2, northwall.len + 2))
+        umatrix = scipy.zeros((self.westwall.len + 2, self.northwall.len + 2))
 
         #  insert the values of the walls
-        umatrix[1:-1, 0] = westwall.values
-        umatrix[0, 1:-1] = northwall.values
-        umatrix[1:-1, -1] = eastwall.values
-        umatrix[-1, 1:-1] = southwall.values
+        umatrix[1:-1, 0] = self.westwall.values
+        umatrix[0, 1:-1] = self.northwall.values
+        umatrix[1:-1, -1] = self.eastwall.values
+        umatrix[-1, 1:-1] = self.southwall.values
 
         #  average values for the corners
         umatrix[0, 0] = (umatrix[0, 1] + umatrix[1, 0]) / 2
@@ -59,24 +66,23 @@ class room:
 
     def setup_A(self):
         column = scipy.concatenate((scipy.array([-4, 1]),
-                                    scipy.zeros(len(self.umatrix[0]) - 4)))
+                                    scipy.zeros(self.northwall.len - 2)))
         T = scipy.linalg.toeplitz(column)
-        Ttuple = tuple((T for _ in range(len(self.umatrix[:, 0]) - 2)))
+#        Ttuple = tuple((T for _ in range(len(self.umatrix[:, 0]) - 2)))
+        Ttuple = tuple((T for _ in range(self.westwall.len)))
         A = scipy.linalg.block_diag(*Ttuple) \
             + \
-            scipy.eye((len(self.umatrix[0]) - 2) *
-                      (len(self.umatrix[:, 0]) - 2),
-                      k=len(self.umatrix[0]) - 2) \
+            scipy.eye(self.northwall.len * self.westwall.len,
+                      k=self.northwall.len) \
             + \
-            scipy.eye((len(self.umatrix[0]) - 2) *
-                      (len(self.umatrix[:, 0]) - 2),
-                      k=-(len(self.umatrix[0]) - 2))
+            scipy.eye(self.northwall.len * self.westwall.len,
+                      k=-self.northwall.len)
         return (1 / self.h ** 2) * A
 
     def setup_b(self):
-        N = len(self.umatrix[0])
-        M = len(self.umatrix[:, 0])
-        b = scipy.zeros(((M - 2), (N - 2)))
+        N = self.northwall.len + 2
+        M = self.westwall.len + 2
+        b = scipy.zeros((self.westwall.len, self.northwall.len))
         b[0, 0] = self.umatrix[0, 1] + self.umatrix[1, 0]
         b[0, -1] = self.umatrix[0, N-2] + self.umatrix[1, N-1]
         b[-1, 0] = self.umatrix[M-2, 0] + self.umatrix[M-1, 1]
@@ -98,8 +104,8 @@ class room:
         pyplot.close()
         figure = pyplot.figure()
         axis = pyplot.subplot(111, projection='3d')
-        x = scipy.arange(0, self.h * len(self.umatrix[0]), self.h)
-        y = scipy.arange(0, self.h * len(self.umatrix[:, 0]), self.h)
+        x = scipy.arange(0, self.h * (self.northwall.len + 2), self.h)
+        y = scipy.arange(0, self.h * (self.westwall.len + 2), self.h)
         X, Y = scipy.meshgrid(x, y)
         Z = self.umatrix
         axis.plot_wireframe(X, Y, Z)
@@ -139,4 +145,5 @@ if __name__ == '__main__':
 #    print(R.u)
     R.get_solution()
     figure = R.plot()
+
     figure.show()
