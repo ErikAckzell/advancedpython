@@ -66,7 +66,8 @@ class room:
 
     def setup_A(self):
         """
-        Setup the matrix of the linear system to be solved.
+        Setup the matrix of the linear system with Dirichlet boundary
+        conditions to be solved.
         The matrix is on the form
           A = [
                T I 0 0 0 ... 0 0 0
@@ -113,9 +114,6 @@ class room:
         #  input values
         self.setup_b_corners(b)
         self.setup_b_north_south(b)
-#        for i in range(1, self.northwall.len - 1):
-#            b[0, i] = self.umatrix[0, i]
-#            b[-1, i] = self.umatrix[self.westwall.len + 1, i]
         for i in range(1, self.westwall.len - 1):
             b[i, 0] = self.umatrix[i, 0]
             b[i, -1] = self.umatrix[i, self.northwall.len + 1]
