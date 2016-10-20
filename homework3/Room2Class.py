@@ -10,6 +10,8 @@ import scipy
 from matplotlib import pyplot
 import scipy.linalg
 from mpl_toolkits.mplot3d import Axes3D
+from mpi4py import MPI
+from mpi4py.MPI import ANY_SOURCE
 
 
 class room:
@@ -42,6 +44,11 @@ class room:
         #  setup the righthand side of the linear system which is to be solved
         self.b = self.setup_b()
         self.u = self.umatrix[1:-1, 1:-1].flatten()
+
+        # Setup MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        size = comm.Get_size()
 
     def setup_umatrix(self):
         """
@@ -120,6 +127,7 @@ class room:
         return (- (1 / self.h ** 2) * b).flatten()
 
     def setup_b_corners(self, b):
+        # I'm guessing one of these are supposed to be Neumann?
         if self.westwall.condition == 'Dirichlet':
             b[0, 0] = self.umatrix[0, 1] + self.umatrix[1, 0]
             b[-1, 0] = self.umatrix[self.westwall.len, 0] +\
@@ -135,6 +143,25 @@ class room:
         for i in range(1, self.northwall.len - 1):
             b[0, i] = self.umatrix[0, i]
             b[-1, i] = self.umatrix[self.westwall.len + 1, i]
+
+    def send_values(self, rank):
+        '''
+        The MPI rank is the same as the room number. For example the large room
+        has rank 2 and interacts with rank 1 and 3
+        '''
+
+        if rank == 1:
+            pass
+
+        elif rank == 2:
+            pass
+
+        elif rank == 3:
+            pass
+
+        else:
+            # Do something
+            pass
 
     def get_solution(self):
         """
@@ -164,6 +191,7 @@ class wall:
     This is a class for walls.
     """
     def __init__(self, values, condition='Dirichlet'):
+
         self.len = len(values)
         self.values = values
         self.condition = condition

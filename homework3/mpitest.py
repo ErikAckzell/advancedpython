@@ -3,7 +3,7 @@
 Created on Mon Oct 17 20:10:35 2016
 @author: robintiman
 """
-import numpy as np
+import numpy
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 
@@ -20,15 +20,9 @@ If the sender is unknown, ANY_SOURCE can be used.
 '''
 
 rank = comm.Get_rank()
-
-rand = np.zeros(1)
-
+rankF = numpy.array(float(rank))
+total = numpy.zeros(1)
+comm.Reduce(rankF,total, op=MPI.SUM)
 if rank == 0:
-	rand = np.random.random_sample(1)
-	print("Process", rank, "drew the number", rand[0])
-	comm.Send(rand, dest=1)
-
-if rank == 1:
-	#
-	comm.Recv(rand, source=0)
-	print("Process", rank, "revieved the number", rand[0])
+    print(total)
+print(rank, rankF, total)

@@ -27,7 +27,6 @@ class LineSearch():
         lc = False
         rc = False
         while not(lc and rc):
-            print(a0)
             if rc:
                 au = min(a0, au)
                 a_hat = self.__interpolate(a0, al, f, fder)
