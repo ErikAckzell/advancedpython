@@ -46,9 +46,9 @@ class room:
         self.u = self.umatrix[1:-1, 1:-1].flatten()
 
         # Setup MPI
-        comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        size = comm.Get_size()
+        self.comm = MPI.COMM_WORLD
+        self.rank = self.comm.Get_rank()
+        self.size = self.comm.Get_size()
 
     def setup_umatrix(self):
         """
@@ -127,7 +127,6 @@ class room:
         return (- (1 / self.h ** 2) * b).flatten()
 
     def setup_b_corners(self, b):
-        # I'm guessing one of these are supposed to be Neumann?
         if self.westwall.condition == 'Dirichlet':
             b[0, 0] = self.umatrix[0, 1] + self.umatrix[1, 0]
             b[-1, 0] = self.umatrix[self.westwall.len, 0] +\
@@ -144,20 +143,52 @@ class room:
             b[0, i] = self.umatrix[0, i]
             b[-1, i] = self.umatrix[self.westwall.len + 1, i]
 
-    def send_values(self, rank):
+    def recieve_values(self, buf, border = None):
+        '''
+        buf - the buffer were the recived values will be placed.
+        border - "east" or "west". Used to denote where the recieving buffer
+        is to be used. For the middle room only
+
+        Note that Send and Recv are blocking functions. Meaning that the process
+        will stop until it has sent or recieved.
+        '''
+
+        if self.rank == 0:
+            # Should recieve from rank 1 only
+            self.comm.Recv(buf, source = 1)
+
+        elif self.rank == 1:
+            # Should recieve from rank 0 and 2
+            if (border == 'east'):
+                self.comm.Send(buf, dest = 2)
+            elif (border == 'west'):
+                self.comm.Send(buf, dest = 0)
+
+        elif self.rank == 2:
+            # Should recieve from rank 1 only
+            self.comm.Recv(buf, source = 1)
+
+    def send_values(self, buf, border = None):
         '''
         The MPI rank is the same as the room number. For example the large room
         has rank 2 and interacts with rank 1 and 3
+
+        buf - The buffer to be sent
+        border - Used by the middle room to denote which border the buffer
+        should be sent to, "east" or "west"
         '''
 
-        if rank == 1:
-            pass
+        if self.rank == 0:
+            self.comm.Send(buf, dest = 1)
 
-        elif rank == 2:
-            pass
+        elif self.rank == 1:
+            if (border == 'east'):
+                self.comm.Send(buf, dest = 2)
+            elif (border == 'west'):
+                self.comm.Send(buf, dest = 0)
 
-        elif rank == 3:
-            pass
+        elif self.rank == 2:
+            self.comm.Send(buf, dest = 1)
 
         else:
             # Do something
