@@ -4,6 +4,7 @@ import scipy.linalg
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from mpi4py import MPI
+import transfer
 
 
 class room:
@@ -36,8 +37,6 @@ class room:
         #  setup the righthand side of the linear system which is to be solved
         self.b = self.setup_b()
         self.u = self.umatrix[1:-1, 1:-1].flatten()
-        self.comm = MPI.COMM_WORLD
-
 
     def setup_D(self, dim):
         """
@@ -240,57 +239,6 @@ class room:
         axis.set_zlabel('Temperature Celcius')
         return figure
 
-    def recieve_values(self, buf, border = None):
-        '''
-        buf - the buffer were the recived values will be placed.
-        border - "east" or "west". Used to denote where the recieving buffer
-        is to be used. For the middle room only
-
-        Note that Send and Recv are blocking functions. Meaning that the process
-        will stop until it has sent or recieved.
-        '''
-
-        rank = self.comm.Get_Rank()
-
-        if rank == 0:
-            # Should recieve from rank 1 only
-            self.comm.Recv(buf, source = 1)
-
-        elif rank == 1:
-            # Should recieve from rank 0 and 2
-            if (border == 'east'):
-                self.comm.Recv(buf, source = 2)
-            elif (border == 'west'):
-                self.comm.Recv(buf, source = 0)
-
-        else:
-            # Should recieve from rank 1 only
-            self.comm.Recv(buf, source = 1)
-
-    def send_values(self, buf, border = None):
-        '''
-        The MPI rank is the same as the room number. For example the large room
-        has rank 2 and interacts with rank 1 and 3
-
-        buf - The buffer to be sent
-        border - Used by the middle room to denote which border the buffer
-        should be sent to, "east" or "west"
-        '''
-
-        rank = self.comm.Get_Rank()
-
-        if rank == 0:
-            self.comm.Send(buf, dest = 1)
-
-        elif rank == 1:
-            if (border == 'east'):
-                self.comm.Send(buf, dest = 2)
-            elif (border == 'west'):
-                self.comm.Send (buf, dest = 0)
-        else:
-            self.comm.Send(buf, dest = 1)
-
-
 
 class wall:
     """
@@ -413,9 +361,16 @@ if __name__ == '__main__':
     #Initial values
     gammaL = 15*scipy.ones(N)
     gammaR = 15*scipy.ones(N)
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    trans = transfer()
     for i in range(numIterations):
-        if rank == 2:
-
+        if rank == 1:
+            
+            if i > 0:
+                trans.recieve_values(trans, gammaL, 'east')
+                trans.recieve_values(trans, gammaR, 'west')
+                
             room2 = room(northwall=wall(40*scipy.ones(N)),
                          southwall=wall(5*scipy.ones(N)),
                          westwall=wall(scipy.hstack((15*scipy.ones(N), gammaL))),
@@ -429,12 +384,15 @@ if __name__ == '__main__':
             # calculate the derivative for the values that are sent to next room
             gammaL = (room2.umatrix[N+1:-1,0] + room2.umatrix[N+1:-1,0]) / room2.h
             gammaR = (room2.umatrix[1:N+1,-1] + room2.umatrix[1:N+1,-2]) / room2.h
+            
+            trans.send_values(room2, gammaL, 'east')
+            trans.send_values(room2, gammaR, 'west')
 
             # plot the solution
             room2.plot('Room 2, iteration {}'.format(i))
-            rank = 1
 
-        if rank == 1:
+        if rank == 0:
+            trans.recieve_values(trans, gammaL)
             room1 = room(northwall=wall(15*scipy.ones(N)),
                          southwall=wall(15*scipy.ones(N)),
                          westwall=wall(40*scipy.ones(N)),
@@ -445,12 +403,13 @@ if __name__ == '__main__':
             # solve the system and update umatrix
             room1.get_solution()
             gammaL = room1.umatrix[1:N+1,-1]
+            trans.send_values(trans, gammaL)
 
             # plot the solution
             room1.plot('Room 1, iteration {}'.format(i))
-            rank = 3
 
-        if rank == 3:
+        if rank == 2:
+            trans.recieve_values(trans, gammaR)
             room3 = room(northwall=wall(15*scipy.ones(N)),
                          southwall=wall(15*scipy.ones(N)),
                          westwall=wall(gammaR, condition='Neumann'),
@@ -461,10 +420,9 @@ if __name__ == '__main__':
             # solve the system and update umatrix
             room3.get_solution()
             gammaR = room3.umatrix[1:N+1,0]
-
+            trans.send_values(trans, gammaR)
             # plot the solution
             room3.plot('Room 3, iteration {}'.format(i))
-            rank = 1
 
         # Relaxation: u^k+1 = omega * u^k+1 + (1 - omega) * u^k
         # u = omega * u + (1 - omega) * u_old

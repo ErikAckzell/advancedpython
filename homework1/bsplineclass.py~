@@ -2,7 +2,7 @@
 """
 Created on Sun Sep 11 15:33:33 2016
 
-@author: Erik Ackzell, Josefine Stål, and Robin Timan
+@author: Erik Ackzell
 """
 
 import scipy
