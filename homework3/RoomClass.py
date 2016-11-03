@@ -355,12 +355,11 @@ if __name__ == '__main__':
     h = 1/20
     omega = 0.8
     N = 10 # u_0,..,u_N
-    initial = scipy.zeros(N)
-    numIterations = 1
-    rank = 2
+    initial = np.zeros(N)
+    numIterations = 10
     #Initial values
-    gammaL = 15*scipy.ones(N)
-    gammaR = 15*scipy.ones(N)
+    gammaL = 15*np.ones(N)
+    gammaR = 15*np.ones(N)
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     trans = transfer()
@@ -384,7 +383,10 @@ if __name__ == '__main__':
             # calculate the derivative for the values that are sent to next room
             gammaL = (room2.umatrix[N+1:-1,0] + room2.umatrix[N+1:-1,0]) / room2.h
             gammaR = (room2.umatrix[1:N+1,-1] + room2.umatrix[1:N+1,-2]) / room2.h
-            
+            print(gammaR.flags)
+            gammaL = np.ascontiguousarray(gammaL, dtype=np.float32)
+            gammaR = np.ascontiguousarray(gammaR, dtype=np.float32)
+            print(gammaR.flags)
             trans.send_values(gammaL, 'east')
             trans.send_values(gammaR, 'west')
 
@@ -403,6 +405,9 @@ if __name__ == '__main__':
             # solve the system and update umatrix
             room1.get_solution()
             gammaL = room1.umatrix[1:N+1,-1]
+            print(gammaL.flags)
+            gammaL = np.ascontiguousarray(gammaL, dtype=np.float32)
+            print(gammaL.flags)
             trans.send_values(gammaL)
 
             # plot the solution
@@ -420,6 +425,7 @@ if __name__ == '__main__':
             # solve the system and update umatrix
             room3.get_solution()
             gammaR = room3.umatrix[1:N+1,0]
+            gammaR = np.ascontiguousarray(gammaR, dtype=np.float32)
             trans.send_values(gammaR)
             # plot the solution
             room3.plot('Room 3, iteration {}'.format(i))
