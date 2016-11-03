@@ -187,19 +187,6 @@ class room:
                 b[i, 0] = self.umatrix[i, 0]
                 b[i, -1] = self.umatrix[i, self.northwall.len + 1]
 
-    def room_solutions(self, numIterations,N): #, omega, initial_val):
-        #u_old = initial_val
-        rank = 1 # Start with room 1
-        for i in range(numIterations):
-            if rank == 1:
-                self.northwall.values = 15*scipy.ones(N)
-                self.southwall.values = 5*scipy.ones(N)
-
-
-            # Relaxation: u^k+1 = omega * u^k+1 + (1 - omega) * u^k
-            #u = omega * u + (1 - omega) * u_old
-            #u_old = u
-
     def get_solution(self):
         """
         Solve the linear equation system.
@@ -233,17 +220,21 @@ class room:
             self.umatrix[0,0] = (self.umatrix[0,1] + self.umatrix[1,0])/2
             self.umatrix[-1,0] = (self.umatrix[-2,0] + self.umatrix[-1,1])/2
 
-    def plot(self):
+    def plot(self, title, N=None):
         """
         Returns a figure object with a plot of the solution.
         """
         figure = pyplot.figure(scipy.random.randint(1, 1000))
         axis = pyplot.subplot(111, projection='3d')
-        x = scipy.arange(0, self.h * (self.northwall.len + 2), self.h)
-        y = scipy.arange(0, self.h * (self.westwall.len + 2), self.h)
+        x = scipy.linspace(0, self.h * (self.northwall.len + 2), self.northwall.len + 2)
+        y = scipy.linspace(0, self.h * (self.westwall.len + 2), self.westwall.len + 2)
         X, Y = scipy.meshgrid(x, y)
         Z = self.umatrix
         axis.plot_wireframe(X, Y, Z)
+        axis.set_title(title)
+        axis.set_xlabel('North-South')
+        axis.set_ylabel('West-East')
+        axis.set_zlabel('Temperature Celcius')
         return figure
 
 
@@ -303,7 +294,7 @@ def test_dir():
                  southwall=southwall,
                  h=h)
         R.get_solution()
-        figure = R.plot()
+        figure = R.plot('Room {}'.format(i))
         pyplot.show()
 
 def test_neu():
@@ -353,11 +344,76 @@ def test_neu():
                  southwall=southwall,
                  h=h)
         R.get_solution()
-        figure = R.plot()
+        figure = R.plot('Room {}'.format(i))
         pyplot.show()
 
 if __name__ == '__main__':
     #test_dir()
-    test_neu()
-    N = 20 # u_0,..,u_N
+    #test_neu()
+    h = 1/20
+    omega = 0.8
+    N = 10 # u_0,..,u_N
     initial = scipy.zeros(N)
+    numIterations = 1
+    rank = 2
+    #Initial values
+    gammaL = 15*scipy.ones(N)
+    gammaR = 15*scipy.ones(N)
+    for i in range(numIterations):
+        if rank == 2:
+
+            room2 = room(northwall=wall(40*scipy.ones(N)),
+                         southwall=wall(5*scipy.ones(N)),
+                         westwall=wall(scipy.hstack((15*scipy.ones(N), gammaL))),
+                         eastwall=wall(scipy.hstack((gammaR, 15*scipy.ones(N)))),
+                         h=h)
+            room2_old = room2.umatrix
+
+            # solve the system and update umatrix
+            room2.get_solution()
+
+            # calculate the derivative for the values that are sent to next room
+            gammaL = (room2.umatrix[N+1:-1,0] + room2.umatrix[N+1:-1,0]) / room2.h
+            gammaR = (room2.umatrix[1:N+1,-1] + room2.umatrix[1:N+1,-2]) / room2.h
+
+            # plot the solution
+            room2.plot('Room 2, iteration {}'.format(i))
+            rank = 1
+
+        if rank == 1:
+            room1 = room(northwall=wall(15*scipy.ones(N)),
+                         southwall=wall(15*scipy.ones(N)),
+                         westwall=wall(40*scipy.ones(N)),
+                         eastwall=wall(gammaL, condition='Neumann'),
+                         h=h)
+            room1_old = room1.umatrix
+
+            # solve the system and update umatrix
+            room1.get_solution()
+            gammaL = room1.umatrix[1:N+1,-1]
+
+            # plot the solution
+            room1.plot('Room 1, iteration {}'.format(i))
+            rank = 3
+
+        if rank == 3:
+            room3 = room(northwall=wall(15*scipy.ones(N)),
+                         southwall=wall(15*scipy.ones(N)),
+                         westwall=wall(gammaR, condition='Neumann'),
+                         eastwall=wall(40*scipy.ones(N)),
+                         h=h)
+            room3_old = room3.umatrix
+
+            # solve the system and update umatrix
+            room3.get_solution()
+            gammaR = room3.umatrix[1:N+1,0]
+
+            # plot the solution
+            room3.plot('Room 3, iteration {}'.format(i))
+            rank = 1
+
+        # Relaxation: u^k+1 = omega * u^k+1 + (1 - omega) * u^k
+        # u = omega * u + (1 - omega) * u_old
+        # u_old = u
+    pyplot.show()
+
