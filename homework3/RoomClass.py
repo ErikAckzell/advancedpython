@@ -36,6 +36,7 @@ class room:
         #  setup the righthand side of the linear system which is to be solved
         self.b = self.setup_b()
         self.u = self.umatrix[1:-1, 1:-1].flatten()
+        self.comm = MPI.COMM_WORLD
 
 
     def setup_D(self, dim):
@@ -217,8 +218,8 @@ class room:
     def update_umatrix(self,new_dir_val=None):
         """
         Updates the umatrix with the solution.
-        :param new_dir_val: The extra variables when one wall has neumann condition, the values are the new DC for the
-                          next room
+        :param new_dir_val: The extra variables when one wall has neumann condition,
+        the values are the new DC for the next room
         :return: -
         """
         #  insert the solution vector into the umatrix
@@ -258,11 +259,13 @@ class room:
         will stop until it has sent or recieved.
         '''
 
-        if self.rank == 0:
+        rank = self.comm.Get_Rank()
+
+        if rank == 0:
             # Should recieve from rank 1 only
             self.comm.Recv(buf, source = 1)
 
-        elif self.rank == 1:
+        elif rank == 1:
             # Should recieve from rank 0 and 2
             if (border == 'east'):
                 self.comm.Recv(buf, source = 2)
@@ -283,10 +286,12 @@ class room:
         should be sent to, "east" or "west"
         '''
 
-        if self.rank == 0:
+        rank = self.comm.Get_Rank()
+
+        if rank == 0:
             self.comm.Send(buf, dest = 1)
 
-        elif self.rank == 1:
+        elif rank == 1:
             if (border == 'east'):
                 self.comm.Send(buf, dest = 2)
             elif (border == 'west'):
