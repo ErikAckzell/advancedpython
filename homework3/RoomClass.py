@@ -356,7 +356,7 @@ if __name__ == '__main__':
     omega = 0.8
     N = 10 # u_0,..,u_N
     initial = np.zeros(N)
-    numIterations = 10
+    numIterations = 1
     #Initial values
     gammaL = 15*np.ones(N)
     gammaR = 15*np.ones(N)
@@ -383,10 +383,8 @@ if __name__ == '__main__':
             # calculate the derivative for the values that are sent to next room
             gammaL = (room2.umatrix[N+1:-1,0] + room2.umatrix[N+1:-1,0]) / room2.h
             gammaR = (room2.umatrix[1:N+1,-1] + room2.umatrix[1:N+1,-2]) / room2.h
-            print(gammaR.flags)
             gammaL = np.ascontiguousarray(gammaL, dtype=np.float32)
             gammaR = np.ascontiguousarray(gammaR, dtype=np.float32)
-            print(gammaR.flags)
             trans.send_values(gammaL, 'east')
             trans.send_values(gammaR, 'west')
 
