@@ -3,6 +3,7 @@ from matplotlib import pyplot
 import scipy.linalg
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+from mpi4py import MPI
 
 
 class room:
@@ -35,6 +36,7 @@ class room:
         #  setup the righthand side of the linear system which is to be solved
         self.b = self.setup_b()
         self.u = self.umatrix[1:-1, 1:-1].flatten()
+
 
     def setup_D(self, dim):
         """
@@ -245,6 +247,53 @@ class room:
         Z = self.umatrix
         axis.plot_wireframe(X, Y, Z)
         return figure
+
+    def recieve_values(self, buf, border = None):
+        '''
+        buf - the buffer were the recived values will be placed.
+        border - "east" or "west". Used to denote where the recieving buffer
+        is to be used. For the middle room only
+
+        Note that Send and Recv are blocking functions. Meaning that the process
+        will stop until it has sent or recieved.
+        '''
+
+        if self.rank == 0:
+            # Should recieve from rank 1 only
+            self.comm.Recv(buf, source = 1)
+
+        elif self.rank == 1:
+            # Should recieve from rank 0 and 2
+            if (border == 'east'):
+                self.comm.Recv(buf, source = 2)
+            elif (border == 'west'):
+                self.comm.Recv(buf, source = 0)
+
+        else:
+            # Should recieve from rank 1 only
+            self.comm.Recv(buf, source = 1)
+
+    def send_values(self, buf, border = None):
+        '''
+        The MPI rank is the same as the room number. For example the large room
+        has rank 2 and interacts with rank 1 and 3
+
+        buf - The buffer to be sent
+        border - Used by the middle room to denote which border the buffer
+        should be sent to, "east" or "west"
+        '''
+
+        if self.rank == 0:
+            self.comm.Send(buf, dest = 1)
+
+        elif self.rank == 1:
+            if (border == 'east'):
+                self.comm.Send(buf, dest = 2)
+            elif (border == 'west'):
+                self.comm.Send (buf, dest = 0)
+        else:
+            self.comm.Send(buf, dest = 1)
+
 
 
 class wall:
