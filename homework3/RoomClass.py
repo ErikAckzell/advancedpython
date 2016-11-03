@@ -4,7 +4,7 @@ import scipy.linalg
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from mpi4py import MPI
-import transfer
+from transfer import transfer
 
 
 class room:
@@ -368,8 +368,8 @@ if __name__ == '__main__':
         if rank == 1:
             
             if i > 0:
-                trans.recieve_values(trans, gammaL, 'east')
-                trans.recieve_values(trans, gammaR, 'west')
+                trans.recieve_values(gammaL, 'east')
+                trans.recieve_values(gammaR, 'west')
                 
             room2 = room(northwall=wall(40*scipy.ones(N)),
                          southwall=wall(5*scipy.ones(N)),
@@ -385,14 +385,14 @@ if __name__ == '__main__':
             gammaL = (room2.umatrix[N+1:-1,0] + room2.umatrix[N+1:-1,0]) / room2.h
             gammaR = (room2.umatrix[1:N+1,-1] + room2.umatrix[1:N+1,-2]) / room2.h
             
-            trans.send_values(room2, gammaL, 'east')
-            trans.send_values(room2, gammaR, 'west')
+            trans.send_values(gammaL, 'east')
+            trans.send_values(gammaR, 'west')
 
             # plot the solution
             room2.plot('Room 2, iteration {}'.format(i))
 
         if rank == 0:
-            trans.recieve_values(trans, gammaL)
+            trans.recieve_values(gammaL)
             room1 = room(northwall=wall(15*scipy.ones(N)),
                          southwall=wall(15*scipy.ones(N)),
                          westwall=wall(40*scipy.ones(N)),
@@ -403,13 +403,13 @@ if __name__ == '__main__':
             # solve the system and update umatrix
             room1.get_solution()
             gammaL = room1.umatrix[1:N+1,-1]
-            trans.send_values(trans, gammaL)
+            trans.send_values(gammaL)
 
             # plot the solution
             room1.plot('Room 1, iteration {}'.format(i))
 
         if rank == 2:
-            trans.recieve_values(trans, gammaR)
+            trans.recieve_values(gammaR)
             room3 = room(northwall=wall(15*scipy.ones(N)),
                          southwall=wall(15*scipy.ones(N)),
                          westwall=wall(gammaR, condition='Neumann'),
@@ -420,7 +420,7 @@ if __name__ == '__main__':
             # solve the system and update umatrix
             room3.get_solution()
             gammaR = room3.umatrix[1:N+1,0]
-            trans.send_values(trans, gammaR)
+            trans.send_values(gammaR)
             # plot the solution
             room3.plot('Room 3, iteration {}'.format(i))
 
