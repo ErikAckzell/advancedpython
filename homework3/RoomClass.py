@@ -3,6 +3,7 @@ from matplotlib import pyplot
 import scipy.linalg
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+from mpi4py import MPI
 
 
 class room:
@@ -35,6 +36,8 @@ class room:
         #  setup the righthand side of the linear system which is to be solved
         self.b = self.setup_b()
         self.u = self.umatrix[1:-1, 1:-1].flatten()
+        self.comm = MPI.COMM_WORLD
+
 
     def setup_D(self, dim):
         """
@@ -202,8 +205,8 @@ class room:
     def update_umatrix(self,new_dir_val=None):
         """
         Updates the umatrix with the solution.
-        :param new_dir_val: The extra variables when one wall has neumann condition, the values are the new DC for the
-                          next room
+        :param new_dir_val: The extra variables when one wall has neumann condition,
+        the values are the new DC for the next room
         :return: -
         """
         #  insert the solution vector into the umatrix
@@ -236,6 +239,57 @@ class room:
         axis.set_ylabel('West-East')
         axis.set_zlabel('Temperature Celcius')
         return figure
+
+    def recieve_values(self, buf, border = None):
+        '''
+        buf - the buffer were the recived values will be placed.
+        border - "east" or "west". Used to denote where the recieving buffer
+        is to be used. For the middle room only
+
+        Note that Send and Recv are blocking functions. Meaning that the process
+        will stop until it has sent or recieved.
+        '''
+
+        rank = self.comm.Get_Rank()
+
+        if rank == 0:
+            # Should recieve from rank 1 only
+            self.comm.Recv(buf, source = 1)
+
+        elif rank == 1:
+            # Should recieve from rank 0 and 2
+            if (border == 'east'):
+                self.comm.Recv(buf, source = 2)
+            elif (border == 'west'):
+                self.comm.Recv(buf, source = 0)
+
+        else:
+            # Should recieve from rank 1 only
+            self.comm.Recv(buf, source = 1)
+
+    def send_values(self, buf, border = None):
+        '''
+        The MPI rank is the same as the room number. For example the large room
+        has rank 2 and interacts with rank 1 and 3
+
+        buf - The buffer to be sent
+        border - Used by the middle room to denote which border the buffer
+        should be sent to, "east" or "west"
+        '''
+
+        rank = self.comm.Get_Rank()
+
+        if rank == 0:
+            self.comm.Send(buf, dest = 1)
+
+        elif rank == 1:
+            if (border == 'east'):
+                self.comm.Send(buf, dest = 2)
+            elif (border == 'west'):
+                self.comm.Send (buf, dest = 0)
+        else:
+            self.comm.Send(buf, dest = 1)
+
 
 
 class wall:

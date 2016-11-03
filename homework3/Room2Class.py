@@ -160,11 +160,11 @@ class room:
         elif self.rank == 1:
             # Should recieve from rank 0 and 2
             if (border == 'east'):
-                self.comm.Send(buf, dest = 2)
+                self.comm.Recv(buf, source = 2)
             elif (border == 'west'):
-                self.comm.Send(buf, dest = 0)
+                self.comm.Recv(buf, source = 0)
 
-        elif self.rank == 2:
+        else:
             # Should recieve from rank 1 only
             self.comm.Recv(buf, source = 1)
 
@@ -187,12 +187,9 @@ class room:
             elif (border == 'west'):
                 self.comm.Send(buf, dest = 0)
 
-        elif self.rank == 2:
+        else:
             self.comm.Send(buf, dest = 1)
 
-        else:
-            # Do something
-            pass
 
     def get_solution(self):
         """
